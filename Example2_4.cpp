@@ -1,16 +1,29 @@
-//Example2_4.cpp : A bouncing ball 
+
 
 //#include <windows.h> //the windows include file, required by all windows applications
 #include <GL/glut.h> //the glut file for windows operations
                      // it also includes gl.h and glu.h for the openGL library calls
 #include <math.h>
+#include <string>
+
+#include <GL/freeglut.h>
 
 #define PI 3.1415926535898 
+
 
 double xpos, ypos, ydir, xdir;         // x and y position for house to be drawn
 double sx, sy, squash;          // xy scale factors
 double rot, rdir;             // rotation 
 int SPEED = 50;        // speed of timer call back in msecs
+int interval = 16; // update rate 
+
+// puntacion
+int scoreLeft = 0;
+int scoreRight = 0;
+
+
+// Matrices de transformación
+
 GLfloat T1[16] = {1.,0.,0.,0.,\
                   0.,1.,0.,0.,\
                   0.,0.,1.,0.,\
@@ -25,9 +38,11 @@ GLfloat T[16] = {1.,0.,0.,0.,\
                  0.,0.,0.,1.};
 
 
-
-#define PI 3.1415926535898 
+/*
 GLint circle_points = 100; 
+
+
+// Draw the circle
 void MyCircle2f(GLfloat centerx, GLfloat centery, GLfloat radius){
   GLint i;
   GLdouble angle;
@@ -41,19 +56,60 @@ void MyCircle2f(GLfloat centerx, GLfloat centery, GLfloat radius){
 
 GLfloat RadiusOfBall = 15.;
 // Draw the ball, centered at the origin
+
+
 void draw_ball() {
   glColor3f(0.6,0.3,0.);
   MyCircle2f(0.,0.,RadiusOfBall);
   
 }
+*/
 
-void Display(void)
+void update (int value){
+  glutTimerFunc(interval, update, 0); // llama update() otra vez en "intervalo" de milisegundos
+  glutPostRedisplay(); 
+}
+
+
+void reshape (int w, int h){
+   // on reshape and on startup, keep the viewport to be the entire size of the window
+   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
+   glMatrixMode (GL_PROJECTION);
+   glLoadIdentity ();
+   // keep our logical coordinate system constant
+   gluOrtho2D(0.0, 500.0, 0.0, 200.0);
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity ();
+}
+
+
+void displayText(float x, float y, std::string text) {
+  glRasterPos2f(x, y);
+  for (size_t i = 0; i < text.size(); ++i) {
+      glutBitmapCharacter(GLUT_BITMAP_8_BY_13, text[i]);
+  }
+}
+
+
+
+
+/**
+ * La funcion Display arroja todo lo de la pantalla para ver algo
+ */
+void display(void)
 {
+
+  //clear all pixels with the specified clear color
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glLoadIdentity();
+
+
+  displayText(500 / 2 - 10, 200 - 15, std::to_string(scoreLeft) + ":" + std::to_string(scoreRight));
+
   // swap the buffers
   glutSwapBuffers(); 
 
-  //clear all pixels with the specified clear color
-  glClear(GL_COLOR_BUFFER_BIT);
+/*
   // 160 is max X value in our world
 	// Define X position of the ball to be at center of window
 	xpos = 80.;
@@ -84,8 +140,11 @@ void Display(void)
   	else if (ypos <RadiusOfBall)
 		ydir = 1;
 	}
-  
-/*  //reset transformation state 
+*/
+
+
+/* 
+ //reset transformation state 
   glLoadIdentity();
   
   // apply translation
@@ -100,7 +159,7 @@ void Display(void)
   // draw the ball
   draw_ball();
 */
- 
+ /*
   //Translate the bouncing ball to its new position
   T[12]= xpos;
   T[13] = ypos;
@@ -119,27 +178,15 @@ void Display(void)
   
   draw_ball();
   glutPostRedisplay(); 
-
-  
-
+  */
 }
 
 
-void reshape (int w, int h)
-{
-   // on reshape and on startup, keep the viewport to be the entire size of the window
-   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
-   glMatrixMode (GL_PROJECTION);
-   glLoadIdentity ();
-
-   // keep our logical coordinate system constant
-   gluOrtho2D(0.0, 160.0, 0.0, 120.0);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity ();
-
-}
 
 
+
+
+/*
 void init(void){
   //set the clear color to be white
   glClearColor(0.0,0.8,0.0,1.0);
@@ -150,17 +197,33 @@ void init(void){
 
 }
 
+*/
+
+
+
+
+/**
+ * @brief Función principal del programa.
+ * @return 1 si la ejecución es exitosa.
+ */
+
 
 int main(int argc, char* argv[])
 {
 
-  glutInit( & argc, argv );
-  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-  glutInitWindowSize (320, 240);   
-  glutCreateWindow("Bouncing Ball");
-  init();
-  glutDisplayFunc(Display);
+  glutInit(& argc, argv);
+  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+  glutInitWindowSize (500, 200);   
+  glutCreateWindow("Pong - Atari");
+  
+
+  //init();
+  glutDisplayFunc(display);
+  glutTimerFunc(interval, update, 0);
+
+  
   glutReshapeFunc(reshape);
+  glColor3f(1.0f, 1.0f, 1.0f);
   glutMainLoop();
 
   return 1;
