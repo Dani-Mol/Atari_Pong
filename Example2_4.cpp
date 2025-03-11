@@ -1,25 +1,37 @@
-
-
 //#include <windows.h> //the windows include file, required by all windows applications
-#include <GL/glut.h> //the glut file for windows operations
-                     // it also includes gl.h and glu.h for the openGL library calls
+#include <GL/glut.h> //the glut file for windows operations // it also includes gl.h and glu.h for the openGL library calls           
 #include <math.h>
 #include <string>
-
 #include <GL/freeglut.h>
 
 #define PI 3.1415926535898 
 
-
 double xpos, ypos, ydir, xdir;         // x and y position for house to be drawn
 double sx, sy, squash;          // xy scale factors
 double rot, rdir;             // rotation 
-int SPEED = 50;        // speed of timer call back in msecs
-int interval = 16; // update rate 
+//int SPEED = 50;        // speed of timer call back in msecs
 
-// puntacion
+// Tamanio de pantalla y tasa de refrescamiento
+int width = 1024; // 500
+int height = 576; // 200
+int interval = 16; 
+
+// Puntacion
 int scoreLeft = 0;
 int scoreRight = 0;
+
+// Tamanio y velocidad raquetas
+int raqW = 20;
+int raqH = 150;
+int raqSp = 4;
+
+// Posicion raqueta izquierda
+float raqLeftX = 10.0f;
+float raqLeftY = 240.0f;
+
+// Posicion raqueta derecha
+float raqRightX = width - raqW - 10;
+float raqRightY = 240.0f;
 
 
 // Matrices de transformación
@@ -65,19 +77,16 @@ void draw_ball() {
 }
 */
 
-void update (int value){
-  glutTimerFunc(interval, update, 0); // llama update() otra vez en "intervalo" de milisegundos
-  glutPostRedisplay(); 
-}
 
 
-void reshape (int w, int h){
+
+void reshape (int width, int height){
    // on reshape and on startup, keep the viewport to be the entire size of the window
-   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
+   glViewport (0, 0, (GLsizei) width, (GLsizei) height);
    glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
    // keep our logical coordinate system constant
-   gluOrtho2D(0.0, 500.0, 0.0, 200.0);
+   gluOrtho2D(0.0, width, 0.0, height);
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity ();
 }
@@ -90,7 +99,50 @@ void displayText(float x, float y, std::string text) {
   }
 }
 
+void displayRaq(float x, float y, float width, float height){
+  glBegin (GL_QUADS);
+  glVertex2f(x,y);
+  glVertex2f(x + width, y);
+  glVertex2f(x + width, y + height);
+  glVertex2f(x, y + height);
+  glEnd();
+}
 
+
+void keyPressLeft(unsigned char key, int x, int y) {
+  switch (key) {
+      case 'w':
+          raqLeftY += raqSp;
+          break;
+      case 's':
+          raqLeftY -= raqSp;
+          break;
+  }
+}
+
+void keyPressRight(int key, int x, int y) {
+  switch (key) {
+      case GLUT_KEY_UP:
+          raqRightY += raqSp;
+          break;
+      case GLUT_KEY_DOWN:
+          raqRightY -= raqSp;
+          break;
+  }
+}
+
+void keyboard(){
+  glutKeyboardFunc(keyPressLeft);
+  glutSpecialFunc(keyPressRight);
+}
+
+
+
+void update (int value){
+  keyboard();
+  glutTimerFunc(interval, update, 0); // llama update() otra vez en "intervalo" de milisegundos
+  glutPostRedisplay(); 
+}
 
 
 /**
@@ -103,8 +155,12 @@ void display(void)
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
 
+  // Raquetas
+  displayRaq(raqLeftX, raqLeftY, raqW, raqH);
+  displayRaq(raqRightX, raqRightY, raqW, raqH);
 
-  displayText(500 / 2 - 10, 200 - 15, std::to_string(scoreLeft) + ":" + std::to_string(scoreRight));
+  // Marcador
+  displayText(width / 2 - 10, height - 15, std::to_string(scoreLeft) + ":" + std::to_string(scoreRight));
 
   // swap the buffers
   glutSwapBuffers(); 
@@ -213,7 +269,7 @@ int main(int argc, char* argv[])
 
   glutInit(& argc, argv);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-  glutInitWindowSize (500, 200);   
+  glutInitWindowSize (width, height);   
   glutCreateWindow("Pong - Atari");
   
 
