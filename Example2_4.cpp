@@ -1,18 +1,13 @@
 //#include <windows.h> //the windows include file, required by all windows applications
-#include <GL/glut.h> //the glut file for windows operations // it also includes gl.h and glu.h for the openGL library calls           
+#include <GL/glut.h> //the glut file for windows operations it also includes gl.h and glu.h for the openGL library calls           
 #include <math.h>
 #include <string>
 #include <GL/freeglut.h>
 
 #define PI 3.1415926535898 
 
-double xpos, ypos, ydir, xdir;         // x and y position for house to be drawn
-double sx, sy, squash;          // xy scale factors
-double rot, rdir;             // rotation 
-int SPEED = 50;        // speed of timer call back in msecs
-
-// Tamanio de pantalla y tasa de refrescamiento
-int width = 1024, height = 576; // 500
+// Tamanio de pantalla y tasa de refresco
+int width = 900, height = 500;
 int interval = 16; 
 
 // Puntacion
@@ -36,27 +31,25 @@ float raqRightY = 240.0f;
 bool keyLeft[256] = {false};
 bool keyRight[256] = {false};
 
-// Matrices de transformación
-
-GLfloat T1[16] = {1.,0.,0.,0.,\
-                  0.,1.,0.,0.,\
-                  0.,0.,1.,0.,\
-                  0.,0.,0.,1.};
-GLfloat S[16] = {1.,0.,0.,0.,\
-                 0.,1.,0.,0.,\
-                 0.,0.,1.,0.,\
-                 0.,0.,0.,1.};
-GLfloat T[16] = {1.,0.,0.,0.,\
-                 0., 1., 0., 0.,\
-                 0.,0.,1.,0.,\
-                 0.,0.,0.,1.};
-
-
-/*
+// Datos de bola
+double xpos = width / 2;
+double ypos = height / 2; 
+float ydir = -1.0f; 
+float xdir = (rand() % 2 == 0) ? -1.0f : 1.0f;         // x and y position for house to be drawn
+int ballSize = 8;
+double sx = 1.0, sy = 1.0, squash = 0.8;          // xy scale factors
+double rot, rdir;             // rotation 
+float ballSp = 10.0f;        // ballSp of timer call back in msecs
+float speedIncr = 0.2f;
+float maxSp= 25.0f;
 GLint circle_points = 100; 
 
 
-// Draw the circle
+/**
+ * Dibujar circulo 
+ */
+
+
 void MyCircle2f(GLfloat centerx, GLfloat centery, GLfloat radius){
   GLint i;
   GLdouble angle;
@@ -68,19 +61,9 @@ void MyCircle2f(GLfloat centerx, GLfloat centery, GLfloat radius){
   glEnd();
 }
 
-GLfloat RadiusOfBall = 15.;
-// Draw the ball, centered at the origin
-
-
-void draw_ball() {
-  glColor3f(0.6,0.3,0.);
-  MyCircle2f(0.,0.,RadiusOfBall);
-  
-}
-*/
-
-
-
+/**
+ * Configuracion  de GL
+ */
 
 void reshape (int width, int height){
    // on reshape and on startup, keep the viewport to be the entire size of the window
@@ -93,6 +76,9 @@ void reshape (int width, int height){
    glLoadIdentity ();
 }
 
+/**
+ * Funcion para mostrar marcador
+ */
 
 void displayText(float x, float y, std::string text) {
   glRasterPos2f(x, y);
@@ -100,6 +86,11 @@ void displayText(float x, float y, std::string text) {
       glutBitmapCharacter(GLUT_BITMAP_8_BY_13, text[i]);
   }
 }
+
+
+/**
+ * Funcion para mostrar raquetas
+ */
 
 void displayRaq(float x, float y, float width, float height){
   glBegin (GL_QUADS);
@@ -111,21 +102,17 @@ void displayRaq(float x, float y, float width, float height){
 }
 
 
-void keyPressLeft(unsigned char key, int x, int y) {
-  keyLeft[key] = true;
-}
+// Funciones para entrada de las raquetas
 
-void keyPressDropLeft(unsigned char key, int x, int y) {
-  keyLeft[key] = false;
-}
+void keyPressLeft(unsigned char key, int x, int y) { keyLeft[key] = true; }
+void keyPressDropLeft(unsigned char key, int x, int y) { keyLeft[key] = false; }
+void keyPressRight(int key, int x, int y) { keyRight[key] = true; }
+void keyPressDropRight(int key, int x, int y) { keyRight[key] = false; }
 
-void keyPressRight(int key, int x, int y) {
-  keyRight[key] = true;
-}
 
-void keyPressDropRight(int key, int x, int y) {
-  keyRight[key] = false;
-}
+/**
+ * Configuracion de las telcas
+ */
 
 void keyboard(){
   glutKeyboardFunc(keyPressLeft);
@@ -135,21 +122,113 @@ void keyboard(){
 }
 
 
+/**
+ * Normalizacion de un vector (para la velocidad cte)
+ */
+
+void vec2_norm(float& x, float &y) {
+  float length = sqrt((x * x) + (y * y));
+  if (length != 0.0f) {
+      length = 1.0f / length;
+      x *= length;
+      y *= length;
+  }
+}
+
+
+/**
+ * Funcion para actualizar la posición de la bola
+ */
+void updateBall() {
+  xpos += xdir * ballSp;
+  ypos += ydir * ballSp;
+
+    // Rebote con la raqueta izquierda
+    if (xpos < raqLeftX + raqW && xpos > raqLeftX && ypos < raqLeftY + raqH && ypos > raqLeftY) {
+        float t = ((ypos - raqLeftY) / raqH) - 0.5f;
+        xdir = fabs(xdir); 
+        ydir = t * 1.5f + ((rand() % 10 - 5) / 20.0f);
+        ballSp = fmin(ballSp + speedIncr, maxSp);
+
+        
+        sx = squash; // Squash horizontal al chocar con la raqueta
+        sy = 1.2; // Se estira verticalmente
+    }
+   
+    // Rebote con la raqueta derecha
+    if (xpos > raqRightX && xpos < raqRightX + raqW && ypos < raqRightY + raqH && ypos > raqRightY) {
+        float t = ((ypos - raqRightY) / raqH) - 0.5f;
+        xdir = -fabs(xdir);
+        ydir = t * 1.5f + ((rand() % 10 - 5) / 20.0f);
+        ballSp = fmin(ballSp + speedIncr, maxSp);
+
+        
+        sx = squash; // Squash horizontal
+        sy = 1.2; // Se estira verticalmente
+    }
+
+    // Si la bola toca la pared izquierda (punto para la derecha)
+    if (xpos < 0) {
+      ++scoreRight;  // Suma un punto para el jugador derecho
+      xpos = width / 2;
+      ypos = height / 2;
+      xdir = fabs(xdir); // Asegura que se mueva hacia la derecha
+      ydir = 0;
+      sx = sy = 1.0;  // Reset de squash
+      ballSp = 10.0f; // Reset de la velocidad 
+    }
+
+    // Si la bola toca la pared derecha (punto para la izquierda)
+    if (xpos > width) {
+        ++scoreLeft;  // Suma un punto para el jugador izquierdo
+        xpos = width / 2;
+        ypos = height / 2;
+        xdir = -fabs(xdir); // Asegura que se mueva hacia la izquierda
+        ydir = 0;
+        sx = sy = 1.0;  // Reset de squash
+        ballSp = 10.0f; // Reset de la velocidad 
+    }
+
+    // Rebote con la pared superior
+    if (ypos > height) {
+        ydir = -fabs(ydir);
+        sx = 1.2;  // Se estira horizontalmente
+        sy = squash;
+    }
+
+    // Rebote con la pared inferior
+    if (ypos < 0) {
+        ydir = fabs(ydir);
+        sx = 1.2;
+        sy = squash;
+    }
+
+    vec2_norm(xdir, ydir);
+
+
+}
+
+
+/**
+ * Funcion que actualiza periodicamente
+ */
 
 void update (int value){
-  if(keyLeft['w']) raqLeftY += raqSp;
-  if(keyLeft['s']) raqLeftY -= raqSp;
+  if(keyLeft['w'] && raqLeftY + raqH < height) raqLeftY += raqSp;
+  if(keyLeft['s'] && raqLeftY > 0) raqLeftY -= raqSp;
 
-  if(keyRight[GLUT_KEY_UP]) raqRightY += raqSp;
-  if(keyRight[GLUT_KEY_DOWN]) raqRightY -= raqSp;
+  if(keyRight[GLUT_KEY_UP] && raqRightY + raqH < height) raqRightY += raqSp;
+  if(keyRight[GLUT_KEY_DOWN] && raqRightY > 0) raqRightY -= raqSp;
 
-  glutTimerFunc(interval, update, 0); // llama update() otra vez en "intervalo" de milisegundos
+ 
+  updateBall();
+  glutTimerFunc(interval, update, 0); 
   glutPostRedisplay(); 
 }
 
 
 /**
- * La funcion Display arroja todo lo de la pantalla para ver algo
+ * La funcion Display renderiza la pantalla
  */
 void display(void)
 {
@@ -165,107 +244,22 @@ void display(void)
   // Marcador
   displayText(width / 2 - 10, height - 15, std::to_string(scoreLeft) + ":" + std::to_string(scoreRight));
 
+  // Bola 
+  glPushMatrix();
+  glTranslatef(xpos, ypos, 0);
+  glScalef(sx, sy, 1.0);  // Aplicar squash/stretch
+  MyCircle2f(0, 0, ballSize);
+  glPopMatrix();
+
   // swap the buffers
   glutSwapBuffers(); 
 
-/*
-  // 160 is max X value in our world
-	// Define X position of the ball to be at center of window
-	xpos = 80.;
- 	
-	// Shape has hit the ground! Stop moving and start squashing down and then back up 
-	if (ypos == RadiusOfBall && ydir == -1  ) { 
-		sy = sy*squash ; 
-		
-		if (sy < 0.8)
-			// reached maximum suqash, now unsquash back up 
-			squash = 1.1;
-		else if (sy > 1.) {
-			// reset squash parameters and bounce ball back upwards
-			sy = 1.;
-			squash = 0.9;
-			ydir = 1;
-		}
-		sx = 1./sy;
-	} 
-	// 120 is max Y value in our world
-	// set Y position to increment 1.5 times the direction of the bounce
-	else {
-	ypos = ypos+ydir *1.5 - (1.-sy)*RadiusOfBall;
-	// If ball touches the top, change direction of ball downwards
-  	if (ypos == 120-RadiusOfBall)
-    	ydir = -1;
-	// If ball touches the bottom, change direction of ball upwards
-  	else if (ypos <RadiusOfBall)
-		ydir = 1;
-	}
-*/
-
-
-/* 
- //reset transformation state 
-  glLoadIdentity();
-  
-  // apply translation
-  glTranslatef(xpos,ypos, 0.);
-
-  // Translate ball back to center
-  glTranslatef(0.,-RadiusOfBall, 0.);
-  // Scale the ball about its bottom
-  glScalef(sx,sy, 1.);
-  // Translate ball up so bottom is at the origin
-  glTranslatef(0.,RadiusOfBall, 0.);
-  // draw the ball
-  draw_ball();
-*/
- /*
-  //Translate the bouncing ball to its new position
-  T[12]= xpos;
-  T[13] = ypos;
-  glLoadMatrixf(T);
-
-  T1[13] = -RadiusOfBall;
-  // Translate ball back to center
-  glMultMatrixf(T1);
-  S[0] = sx;
-  S[5] = sy;
-  // Scale the ball about its bottom
-  glMultMatrixf(S);
-  T1[13] = RadiusOfBall;
-  // Translate ball up so bottom is at the origin
-  glMultMatrixf(T1);
-  
-  draw_ball();
-  glutPostRedisplay(); 
-  */
 }
-
-
-
-
-
-
-/*
-void init(void){
-  //set the clear color to be white
-  glClearColor(0.0,0.8,0.0,1.0);
-  // initial position set to 0,0
-  xpos = 60; ypos = RadiusOfBall; xdir = 1; ydir = 1;
-  sx = 1.; sy = 1.; squash = 0.9;
-  rot = 0; 
-
-}
-
-*/
-
-
-
 
 /**
  * @brief Funcion principal del programa.
  * @return 1 si la ejecucion es exitosa.
  */
-
 
 int main(int argc, char* argv[])
 {
@@ -275,8 +269,6 @@ int main(int argc, char* argv[])
   glutInitWindowSize (width, height);   
   glutCreateWindow("Pong - Atari");
   
-
-  //init();
   glutDisplayFunc(display);
   keyboard();
   glutTimerFunc(interval, update, 0);
