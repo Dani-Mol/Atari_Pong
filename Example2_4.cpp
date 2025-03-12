@@ -9,16 +9,14 @@
 double xpos, ypos, ydir, xdir;         // x and y position for house to be drawn
 double sx, sy, squash;          // xy scale factors
 double rot, rdir;             // rotation 
-//int SPEED = 50;        // speed of timer call back in msecs
+int SPEED = 50;        // speed of timer call back in msecs
 
 // Tamanio de pantalla y tasa de refrescamiento
-int width = 1024; // 500
-int height = 576; // 200
+int width = 1024, height = 576; // 500
 int interval = 16; 
 
 // Puntacion
-int scoreLeft = 0;
-int scoreRight = 0;
+int scoreLeft = 0, scoreRight = 0;
 
 // Tamanio y velocidad raquetas
 int raqW = 20;
@@ -33,6 +31,10 @@ float raqLeftY = 240.0f;
 float raqRightX = width - raqW - 10;
 float raqRightY = 240.0f;
 
+
+// Estado de teclas
+bool keyLeft[256] = {false};
+bool keyRight[256] = {false};
 
 // Matrices de transformación
 
@@ -110,36 +112,37 @@ void displayRaq(float x, float y, float width, float height){
 
 
 void keyPressLeft(unsigned char key, int x, int y) {
-  switch (key) {
-      case 'w':
-          raqLeftY += raqSp;
-          break;
-      case 's':
-          raqLeftY -= raqSp;
-          break;
-  }
+  keyLeft[key] = true;
+}
+
+void keyPressDropLeft(unsigned char key, int x, int y) {
+  keyLeft[key] = false;
 }
 
 void keyPressRight(int key, int x, int y) {
-  switch (key) {
-      case GLUT_KEY_UP:
-          raqRightY += raqSp;
-          break;
-      case GLUT_KEY_DOWN:
-          raqRightY -= raqSp;
-          break;
-  }
+  keyRight[key] = true;
+}
+
+void keyPressDropRight(int key, int x, int y) {
+  keyRight[key] = false;
 }
 
 void keyboard(){
   glutKeyboardFunc(keyPressLeft);
+  glutKeyboardUpFunc(keyPressDropLeft);
   glutSpecialFunc(keyPressRight);
+  glutSpecialUpFunc(keyPressDropRight);
 }
 
 
 
 void update (int value){
-  keyboard();
+  if(keyLeft['w']) raqLeftY += raqSp;
+  if(keyLeft['s']) raqLeftY -= raqSp;
+
+  if(keyRight[GLUT_KEY_UP]) raqRightY += raqSp;
+  if(keyRight[GLUT_KEY_DOWN]) raqRightY -= raqSp;
+
   glutTimerFunc(interval, update, 0); // llama update() otra vez en "intervalo" de milisegundos
   glutPostRedisplay(); 
 }
@@ -259,8 +262,8 @@ void init(void){
 
 
 /**
- * @brief Función principal del programa.
- * @return 1 si la ejecución es exitosa.
+ * @brief Funcion principal del programa.
+ * @return 1 si la ejecucion es exitosa.
  */
 
 
@@ -275,9 +278,9 @@ int main(int argc, char* argv[])
 
   //init();
   glutDisplayFunc(display);
+  keyboard();
   glutTimerFunc(interval, update, 0);
 
-  
   glutReshapeFunc(reshape);
   glColor3f(1.0f, 1.0f, 1.0f);
   glutMainLoop();
